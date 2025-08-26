@@ -11,6 +11,7 @@ app.use(express.json());
 connectDB();
 
 // Import Routes
+app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/clients", require("./routes/clientRoutes"));
 app.use("/api/lawyers", require("./routes/lawyerRoutes"));
 app.use("/api/cases", require("./routes/caseRoutes"));
