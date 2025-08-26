@@ -20,6 +20,9 @@ const auth = async (req, res, next) => {
   }
 };
 
+// Alternative name for auth middleware (used in blog routes)
+const authenticate = auth;
+
 // Middleware to check if user is admin
 const adminAuth = async (req, res, next) => {
   try {
@@ -56,4 +59,39 @@ const clientAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { auth, adminAuth, lawyerAuth, clientAuth };
+// Flexible role-based authorization middleware
+const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    try {
+      if (!req.user || !req.user.role) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Access denied. No user role found.' 
+        });
+      }
+
+      if (!allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({ 
+          success: false, 
+          message: `Access denied. Required roles: ${allowedRoles.join(', ')}` 
+        });
+      }
+
+      next();
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Server error in role authorization' 
+      });
+    }
+  };
+};
+
+module.exports = { 
+  auth, 
+  authenticate, 
+  adminAuth, 
+  lawyerAuth, 
+  clientAuth, 
+  requireRole 
+};

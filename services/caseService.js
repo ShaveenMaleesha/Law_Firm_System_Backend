@@ -21,7 +21,6 @@ exports.getAllCases = async (filters = {}, page = 1, limit = 10) => {
     .populate("lawyer_id", "name email practiceArea contactNo")
     .populate("createdBy", "username")
     .populate("shedual_ids")
-    .populate("payments")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
@@ -42,15 +41,14 @@ exports.getCaseById = async (id) => {
     .populate("client_id", "name email contactNo username address")
     .populate("lawyer_id", "name email practiceArea contactNo address")
     .populate("createdBy", "username")
-    .populate("shedual_ids")
-    .populate("payments");
+    .populate("shedual_ids");
 };
 
 // Update case
 exports.updateCase = async (id, caseData) => {
   caseData.updatedAt = new Date();
   return await Case.findByIdAndUpdate(id, caseData, { new: true })
-    .populate("client_id lawyer_id createdBy shedual_ids payments");
+    .populate("client_id lawyer_id createdBy shedual_ids");
 };
 
 // Delete case

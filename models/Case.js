@@ -28,7 +28,6 @@ const CaseSchema = new mongoose.Schema({
     default: 'medium' 
   },
   shedual_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Schedule" }],
-  payments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Payment" }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Admin",
