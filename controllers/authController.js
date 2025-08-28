@@ -5,9 +5,9 @@ const Client = require('../models/Client');
 const Lawyer = require('../models/Lawyer');
 
 // Generate JWT Token
-const generateToken = (userId, role) => {
+const generateToken = (userId, role, username, email) => {
   return jwt.sign(
-    { userId, role },
+    { userId, role, username, email },
     process.env.JWT_SECRET,
     { expiresIn: '24h' }
   );
@@ -37,7 +37,7 @@ exports.registerAdmin = async (req, res) => {
     await admin.save();
 
     // Generate token
-    const token = generateToken(admin._id, 'admin');
+  const token = generateToken(admin._id, 'admin', admin.username, admin.email || null);
 
     res.status(201).json({
       message: 'Admin registered successfully',
@@ -71,7 +71,7 @@ exports.loginAdmin = async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(admin._id, 'admin');
+  const token = generateToken(admin._id, 'admin', admin.username, admin.email || null);
 
     res.json({
       message: 'Login successful',
@@ -117,7 +117,7 @@ exports.registerClient = async (req, res) => {
     await client.save();
 
     // Generate token
-    const token = generateToken(client._id, 'client');
+  const token = generateToken(client._id, 'client', client.username, client.email);
 
     res.status(201).json({
       message: 'Client registered successfully',
@@ -155,7 +155,7 @@ exports.loginClient = async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(client._id, 'client');
+  const token = generateToken(client._id, 'client', client.username, client.email);
 
     res.json({
       message: 'Login successful',
@@ -215,7 +215,7 @@ exports.registerLawyer = async (req, res) => {
     await lawyer.save();
 
     // Generate token
-    const token = generateToken(lawyer._id, 'lawyer');
+  const token = generateToken(lawyer._id, 'lawyer', lawyer.name, lawyer.email);
 
     res.status(201).json({
       message: 'Lawyer registered successfully',
@@ -251,7 +251,7 @@ exports.loginLawyer = async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(lawyer._id, 'lawyer');
+  const token = generateToken(lawyer._id, 'lawyer', lawyer.name, lawyer.email);
 
     res.json({
       message: 'Login successful',
