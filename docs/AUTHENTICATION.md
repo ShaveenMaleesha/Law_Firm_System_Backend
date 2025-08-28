@@ -91,7 +91,7 @@ Content-Type: application/json
   "name": "Jane Smith",
   "email": "jane@lawfirm.com",
   "password": "securepassword",
-  "practiceArea": "Criminal Law",
+  "practiceArea": ["Criminal Law", "Corporate Law"],
   "address": "456 Legal Ave, City",
   "contactNo": "0987654321"
 }

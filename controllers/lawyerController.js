@@ -19,6 +19,13 @@ exports.createLawyer = async (req, res) => {
       });
     }
 
+    // Validate practiceArea is an array
+    if (!Array.isArray(practiceArea) || practiceArea.length === 0) {
+      return res.status(400).json({
+        message: "practiceArea must be a non-empty array of strings"
+      });
+    }
+
     // Check if email already exists
     const emailExists = await lawyerService.checkEmailExists(email);
     if (emailExists) {
@@ -133,6 +140,15 @@ exports.updateLawyer = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Validate practiceArea if provided
+    if (updateData.practiceArea) {
+      if (!Array.isArray(updateData.practiceArea) || updateData.practiceArea.length === 0) {
+        return res.status(400).json({
+          message: "practiceArea must be a non-empty array of strings"
+        });
+      }
+    }
+
     // If email is being updated, check if it exists
     if (updateData.email) {
       const emailExists = await lawyerService.checkEmailExists(updateData.email, id);
@@ -181,6 +197,100 @@ exports.getLawyerStatistics = async (req, res) => {
     res.json({
       message: "Lawyer statistics retrieved successfully",
       statistics
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Lawyer: Get current lawyer's own details
+exports.getMyDetails = async (req, res) => {
+  try {
+    const lawyerId = req.user.userId;
+    const lawyer = await lawyerService.getLawyerById(lawyerId, false);
+    
+    if (!lawyer) {
+      return res.status(404).json({ message: "Lawyer profile not found" });
+    }
+    
+    res.json({
+      message: "Lawyer details retrieved successfully",
+      lawyer
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Lawyer: Update current lawyer's own details
+exports.updateMyDetails = async (req, res) => {
+  try {
+    const lawyerId = req.user.userId;
+    const updateData = req.body;
+    
+    // Remove sensitive fields that shouldn't be updated by lawyer themselves
+    delete updateData.password; // Password updates should go through a separate endpoint
+    delete updateData.role;
+    delete updateData._id;
+    delete updateData.blogIds;
+    delete updateData.caseIds;
+    
+    // Validate practiceArea if provided
+    if (updateData.practiceArea) {
+      if (!Array.isArray(updateData.practiceArea) || updateData.practiceArea.length === 0) {
+        return res.status(400).json({
+          message: "practiceArea must be a non-empty array of strings"
+        });
+      }
+    }
+    
+    // Validate profilePicture if provided (base64 image)
+    if (updateData.profilePicture) {
+      if (typeof updateData.profilePicture !== 'string') {
+        return res.status(400).json({
+          message: "profilePicture must be a base64 encoded string"
+        });
+      }
+      
+      // Check if it's a valid base64 image data URL
+      const base64Pattern = /^data:image\/(jpeg|jpg|png|gif|webp);base64,/;
+      if (!base64Pattern.test(updateData.profilePicture)) {
+        return res.status(400).json({
+          message: "profilePicture must be a valid base64 image data URL (jpeg, jpg, png, gif, webp)"
+        });
+      }
+      
+      // Check base64 size (approximate check - base64 is ~1.33x original file size)
+      const base64Data = updateData.profilePicture.split(',')[1];
+      const sizeInBytes = (base64Data.length * 3) / 4;
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+      
+      if (sizeInBytes > maxSizeInBytes) {
+        return res.status(400).json({
+          message: "Profile picture is too large. Maximum size is 5MB."
+        });
+      }
+    }
+    
+    // Check if email is being updated and if it already exists
+    if (updateData.email) {
+      const emailExists = await lawyerService.checkEmailExists(updateData.email, lawyerId);
+      if (emailExists) {
+        return res.status(400).json({
+          message: "Email already exists. Please use a different email address."
+        });
+      }
+    }
+    
+    const updatedLawyer = await lawyerService.updateLawyer(lawyerId, updateData);
+    
+    if (!updatedLawyer) {
+      return res.status(404).json({ message: "Lawyer not found" });
+    }
+    
+    res.json({
+      message: "Profile updated successfully",
+      lawyer: updatedLawyer
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

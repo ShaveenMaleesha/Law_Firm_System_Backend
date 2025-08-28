@@ -1,11 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const lawyerController = require("../controllers/lawyerController");
-const { auth, adminAuth } = require("../middleware/auth");
+const { auth, adminAuth, lawyerAuth } = require("../middleware/auth");
 
 // Public routes (for lawyer selection in appointments, etc.)
 router.get("/selection", lawyerController.getLawyersForSelection);
 router.get("/practice-area/:practiceArea", lawyerController.getLawyersByPracticeArea);
+
+// Lawyer own profile routes
+router.get("/me", auth, lawyerAuth, lawyerController.getMyDetails);
+router.put("/me", auth, lawyerAuth, lawyerController.updateMyDetails);
 
 // Admin routes - Lawyer management
 router.post("/", auth, adminAuth, lawyerController.createLawyer);

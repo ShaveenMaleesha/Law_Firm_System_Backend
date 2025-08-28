@@ -178,6 +178,20 @@ exports.registerLawyer = async (req, res) => {
   try {
     const { name, email, password, practiceArea, address, contactNo } = req.body;
 
+    // Validate required fields
+    if (!name || !email || !password || !practiceArea || !address || !contactNo) {
+      return res.status(400).json({
+        message: "Missing required fields: name, email, password, practiceArea, address, contactNo"
+      });
+    }
+
+    // Validate practiceArea is an array
+    if (!Array.isArray(practiceArea) || practiceArea.length === 0) {
+      return res.status(400).json({
+        message: "practiceArea must be a non-empty array of strings"
+      });
+    }
+
     // Check if lawyer already exists
     const existingLawyer = await Lawyer.findOne({ email });
     if (existingLawyer) {

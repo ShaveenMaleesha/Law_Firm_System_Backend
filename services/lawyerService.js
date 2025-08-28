@@ -15,7 +15,7 @@ exports.getAllLawyers = async (filters = {}, page = 1, limit = 10) => {
   
   const query = {};
   if (filters.practiceArea) {
-    query.practiceArea = { $regex: filters.practiceArea, $options: 'i' };
+    query.practiceArea = { $in: [new RegExp(filters.practiceArea, 'i')] };
   }
   if (filters.email) {
     query.email = { $regex: filters.email, $options: 'i' };
@@ -49,10 +49,38 @@ exports.getAllLawyers = async (filters = {}, page = 1, limit = 10) => {
 exports.getLawyerById = async (id, includePassword = false) => {
   const selectFields = includePassword ? '' : '-password';
   
-  return await Lawyer.findById(id)
+  const lawyer = await Lawyer.findById(id)
     .select(selectFields)
     .populate('blogIds', 'topic content approved timestamp')
     .populate('caseIds', 'caseName fileNumber status client_id');
+    
+  if (!lawyer) return null;
+  
+  // Calculate lawyer statistics
+  const totalCases = lawyer.caseIds.length;
+  const successfulCases = lawyer.caseIds.filter(c => c.status === 'closed').length;
+  const activeCases = lawyer.caseIds.filter(c => c.status === 'active').length;
+  const pendingCases = lawyer.caseIds.filter(c => c.status === 'pending').length;
+  const onHoldCases = lawyer.caseIds.filter(c => c.status === 'on-hold').length;
+  
+  // Get unique clients from cases
+  const uniqueClientIds = [...new Set(lawyer.caseIds.map(c => c.client_id?.toString()).filter(Boolean))];
+  const totalClients = uniqueClientIds.length;
+  
+  // Return lawyer data with statistics
+  return {
+    ...lawyer.toObject(),
+    statistics: {
+      totalCases,
+      successfulCases, // cases with 'closed' status
+      activeCases,
+      pendingCases,
+      onHoldCases,
+      totalClients,
+      totalBlogs: lawyer.blogIds.length,
+      approvedBlogs: lawyer.blogIds.filter(b => b.approved).length
+    }
+  };
 };
 
 // Admin: Get lawyer with case statistics
@@ -93,7 +121,7 @@ exports.getLawyersForSelection = async () => {
 // Get lawyers by practice area
 exports.getLawyersByPracticeArea = async (practiceArea) => {
   return await Lawyer.find({ 
-    practiceArea: { $regex: practiceArea, $options: 'i' } 
+    practiceArea: { $in: [new RegExp(practiceArea, 'i')] } 
   }).select('-password');
 };
 
@@ -117,6 +145,7 @@ exports.getLawyerStatistics = async () => {
   
   // Practice area distribution
   const practiceAreaStats = await Lawyer.aggregate([
+    { $unwind: '$practiceArea' },
     {
       $group: {
         _id: '$practiceArea',
