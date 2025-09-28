@@ -9,11 +9,25 @@ exports.createBlog = async (req, res) => {
   try {
     const { title, content, topic, practiceArea, image } = req.body;
     
+    // Debug logging to see JWT payload
+    console.log('JWT payload (req.user):', req.user);
+    
     // Validate required fields
     if (!title || !content || !topic || !practiceArea) {
       return res.status(400).json({
         success: false,
         message: "Title, content, topic, and practice area are required"
+      });
+    }
+    
+    // FIX: Handle all possible JWT payload formats (userId, id, _id)
+    const lawyerId = req.user.userId || req.user.id || req.user._id;
+    
+    if (!lawyerId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID not found in JWT token",
+        debug: { jwtPayload: req.user } 
       });
     }
     
@@ -23,8 +37,10 @@ exports.createBlog = async (req, res) => {
       topic,
       practiceArea,
       image: image || null,
-      lawyer_id: req.user.id // From auth middleware
+      lawyer_id: lawyerId // This will now work correctly
     };
+    
+    console.log('Creating blog with lawyer_id:', lawyerId);
     
     const blog = await blogService.createBlog(blogData);
     
@@ -34,6 +50,7 @@ exports.createBlog = async (req, res) => {
       data: blog
     });
   } catch (error) {
+    console.error('Create blog error:', error);
     res.status(500).json({
       success: false,
       message: "Error creating blog",
@@ -47,8 +64,11 @@ exports.getMyBlogs = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
     
+    // Handle JWT payload format consistently
+    const lawyerId = req.user.userId || req.user.id || req.user._id;
+    
     const result = await blogService.getBlogsByLawyer(
-      req.user.id,
+      lawyerId,
       status,
       parseInt(page),
       parseInt(limit)
@@ -86,7 +106,10 @@ exports.updateMyBlog = async (req, res) => {
       blogData[key] === undefined && delete blogData[key]
     );
     
-    const blog = await blogService.updateBlog(id, req.user.id, blogData);
+    // Handle JWT payload format consistently
+    const lawyerId = req.user.userId || req.user.id || req.user._id;
+    
+    const blog = await blogService.updateBlog(id, lawyerId, blogData);
     
     res.status(200).json({
       success: true,
@@ -106,7 +129,10 @@ exports.deleteMyBlog = async (req, res) => {
   try {
     const { id } = req.params;
     
-    await blogService.deleteBlog(id, req.user.id);
+    // Handle JWT payload format consistently
+    const lawyerId = req.user.userId || req.user.id || req.user._id;
+    
+    await blogService.deleteBlog(id, lawyerId);
     
     res.status(200).json({
       success: true,
@@ -165,7 +191,10 @@ exports.approveBlog = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const blog = await blogService.approveBlog(id, req.user.id);
+    // Handle JWT payload format consistently
+    const adminId = req.user.userId || req.user.id || req.user._id;
+    
+    const blog = await blogService.approveBlog(id, adminId);
     
     if (!blog) {
       return res.status(404).json({
@@ -194,7 +223,10 @@ exports.rejectBlog = async (req, res) => {
     const { id } = req.params;
     const { rejectionReason } = req.body;
     
-    const blog = await blogService.rejectBlog(id, req.user.id, rejectionReason);
+    // Handle JWT payload format consistently
+    const adminId = req.user.userId || req.user.id || req.user._id;
+    
+    const blog = await blogService.rejectBlog(id, adminId, rejectionReason);
     
     if (!blog) {
       return res.status(404).json({
@@ -316,7 +348,10 @@ exports.getBlogById = async (req, res) => {
     }
     
     // If user is lawyer, only allow access to own blogs
-    if (req.user.role === 'lawyer' && blog.lawyer_id._id.toString() !== req.user.id) {
+    // Handle JWT payload format consistently
+    const userId = req.user.userId || req.user.id || req.user._id;
+    
+    if (req.user.role === 'lawyer' && blog.lawyer_id._id.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "Access denied"
@@ -334,4 +369,4 @@ exports.getBlogById = async (req, res) => {
       error: error.message
     });
   }
-};
+}; 
