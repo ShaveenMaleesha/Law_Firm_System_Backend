@@ -19,7 +19,7 @@ app.use("/api/schedules", require("./routes/scheduleRoutes"));
 app.use("/api/blogs", require("./routes/blogRoutes"));
 app.use("/api/appointments", require("./routes/appointmentRoutes"));
 // app.use("/api/payments", require("./routes/paymentRoutes"));
-// app.use("/api/admins", require("./routes/adminRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
 // app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 // Start Server
